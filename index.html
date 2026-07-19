@@ -22,6 +22,10 @@
     --accent-soft:rgba(145,70,255,.14);
     --live:#ff4757;
     --live-soft:rgba(255,71,87,.16);
+    --online:#3ddc84;
+    --online-soft:rgba(61,220,132,.16);
+    --group:#22d3a8;
+    --group-soft:rgba(34,211,168,.14);
     --text-1:#eef1f5;
     --text-2:#909aa8;
     --text-3:#5b6270;
@@ -32,6 +36,7 @@
   }
 
   *{margin:0;padding:0;box-sizing:border-box;}
+  [hidden]{display:none !important;}
 
   html{scroll-behavior:smooth;}
   @media (prefers-reduced-motion: reduce){
@@ -136,6 +141,23 @@
   }
   .live-ticker b{color:var(--text-1);font-weight:600;}
 
+  .online-ticker{
+    display:flex;align-items:center;gap:7px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;color:var(--text-2);
+    padding:7px 12px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:var(--bg-card);
+  }
+  .online-ticker .online-dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--online);
+    box-shadow:0 0 0 4px var(--online-soft);
+    flex-shrink:0;
+  }
+  .online-ticker b{color:var(--text-1);font-weight:600;}
+
   .search-box{position:relative;}
   .search-box input{
     background:var(--bg-card);
@@ -202,6 +224,28 @@
   .btn:active{transform:scale(.97);}
   .btn svg{width:14px;height:14px;flex-shrink:0;}
 
+  /* ---- Переключатель режима просмотра ---- */
+  .mode-switch{
+    display:flex;gap:2px;
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:3px;
+    flex-shrink:0;
+  }
+  .mode-btn{
+    all:unset;box-sizing:border-box;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:'Manrope',sans-serif;
+    font-size:12.5px;font-weight:600;color:var(--text-2);
+    padding:6px 12px;border-radius:7px;
+    transition:background .18s var(--ease), color .18s var(--ease);
+    white-space:nowrap;
+  }
+  .mode-btn svg{width:13px;height:13px;flex-shrink:0;}
+  .mode-btn:hover{color:var(--text-1);}
+  .mode-btn.active{background:var(--accent);color:#fff;}
+
   /* ---- Theater ---- */
   .theater{
     display:flex;gap:18px;
@@ -260,6 +304,106 @@
   .chat-wrapper.hidden{width:0;opacity:0;border:none;margin-left:-18px;}
   .chat-wrapper iframe{width:100%;height:100%;border:none;}
 
+  /* ---- Параллельный просмотр (группа) ---- */
+  .theater-multi{display:flex;flex-direction:column;gap:16px;}
+
+  .multi-toolbar{
+    display:flex;
+    justify-content:flex-end;
+  }
+
+  .multi-empty{
+    border:1px dashed var(--border);border-radius:var(--radius-lg);
+    padding:40px 24px;text-align:center;
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .multi-empty p{color:var(--text-3);font-size:13.5px;}
+  .multi-empty p:first-child{color:var(--text-2);font-weight:600;font-size:14.5px;}
+
+  /* -- режим «по сетке»: фиксированная квадратная раскладка,
+     окна нельзя двигать или тянуть -- */
+  .multi-grid{
+    display:flex;
+    flex-wrap:wrap;
+    align-content:flex-start;
+    gap:16px;
+    --cols:2;
+  }
+  .multi-grid .multi-tile{
+    flex:0 0 auto;
+    width:calc((100% - (var(--cols) - 1) * 16px) / var(--cols));
+    min-width:240px;
+    max-width:100%;
+  }
+
+  .multi-tile{
+    background:#000;
+    border:1px solid var(--border-strong);
+    border-radius:var(--radius-md);
+    overflow:hidden;
+    display:flex;flex-direction:column;
+    box-shadow:0 14px 30px -18px rgba(0,0,0,.7);
+  }
+
+  /* -- режим «свободно»: полотно, на котором окна можно
+     перетаскивать за шапку и тянуть за правый нижний угол —
+     высота всегда следует за шириной через aspect-ratio:16/9
+     на .multi-tile-frame, так что картинка не искажается -- */
+  .multi-free{
+    position:relative;
+    min-height:320px;
+    border:1px dashed var(--border);
+    border-radius:var(--radius-lg);
+    padding:10px;
+  }
+  .multi-free .multi-tile{
+    position:absolute;
+    width:320px;
+    min-width:180px;
+    max-width:100%;
+    resize:horizontal;
+    box-shadow:0 16px 34px -14px rgba(0,0,0,.85);
+  }
+  .multi-free .multi-tile-head{cursor:grab;}
+  .multi-free .multi-tile-head:active{cursor:grabbing;}
+  .multi-free .multi-tile::-webkit-resizer{
+    background:linear-gradient(135deg, transparent 0 50%, var(--border-strong) 50% 60%, transparent 60% 70%, var(--border-strong) 70% 80%, transparent 80%);
+  }
+
+  @media (max-width:640px){
+    .multi-grid{--cols:1;}
+    .multi-free .multi-tile{resize:none;}
+  }
+  .multi-tile-head{
+    display:flex;align-items:center;gap:8px;
+    padding:8px 6px 8px 10px;
+    background:var(--bg-panel);
+    flex-shrink:0;
+  }
+  .multi-tile-dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);flex-shrink:0;}
+  .multi-tile-dot.on{background:var(--live);animation:pulse 2s infinite;}
+  .multi-tile-name{
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;
+    color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .multi-tile-viewers{
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-3);
+    flex-shrink:0;white-space:nowrap;
+  }
+  .multi-tile-actions{display:flex;align-items:center;gap:2px;margin-left:auto;flex-shrink:0;}
+  .multi-tile-actions a,
+  .multi-tile-actions button{
+    all:unset;box-sizing:border-box;cursor:pointer;
+    width:22px;height:22px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--text-3);font-size:14px;line-height:1;
+    transition:background .15s var(--ease), color .15s var(--ease);
+  }
+  .multi-tile-actions a:hover{background:var(--bg-card-hover);color:var(--accent-strong);}
+  .multi-tile-actions button:hover{background:var(--live-soft);color:var(--live);}
+  .multi-tile-frame{position:relative;aspect-ratio:16/9;}
+  .multi-tile-frame iframe{width:100%;height:100%;border:none;display:block;}
+
   /* ---- Section headers ---- */
   .section-head{
     display:flex;align-items:baseline;justify-content:space-between;
@@ -308,6 +452,17 @@
   }
   .card:hover{transform:translateY(-3px);background:var(--bg-card-hover);border-color:var(--border-strong);}
   .card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent), 0 12px 24px -12px rgba(145,70,255,.4);}
+  .card.in-group{border-color:var(--group);box-shadow:0 0 0 1px var(--group);}
+
+  .card-group-badge{
+    position:absolute;left:9px;bottom:9px;z-index:2;
+    display:none;align-items:center;gap:3px;
+    font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.3px;
+    color:#052a20;background:var(--group);
+    padding:3px 6px;border-radius:5px;
+    backdrop-filter:blur(3px);
+  }
+  .card.in-group .card-group-badge{display:inline-flex;}
 
   .card-ch{
     position:absolute;top:9px;left:9px;z-index:2;
@@ -375,6 +530,77 @@
   .card--empty .name{color:var(--text-3);}
   .card--empty .avatar{display:none;}
 
+  /* ---- Кнопка «Инфо» и окно с описанием сайта ---- */
+  .info-fab{
+    all:unset;box-sizing:border-box;cursor:pointer;
+    position:fixed;right:24px;bottom:24px;z-index:250;
+    width:46px;height:46px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--bg-card);border:1px solid var(--border-strong);
+    color:var(--text-2);
+    box-shadow:0 10px 26px -10px rgba(0,0,0,.7);
+    transition:background .18s var(--ease), color .18s var(--ease), border-color .18s var(--ease), transform .18s var(--ease);
+  }
+  .info-fab svg{width:21px;height:21px;}
+  .info-fab:hover{background:var(--bg-card-hover);color:var(--accent-strong);border-color:var(--accent);transform:translateY(-2px);}
+  .info-fab:active{transform:scale(.95);}
+
+  .info-overlay{
+    position:fixed;inset:0;z-index:260;
+    background:rgba(6,7,12,.6);
+    backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  }
+
+  .info-modal{
+    position:fixed;right:24px;bottom:84px;z-index:270;
+    width:min(360px, calc(100vw - 48px));
+    max-height:min(520px, calc(100vh - 140px));
+    display:flex;flex-direction:column;
+    background:var(--bg-panel);
+    border:1px solid var(--border-strong);
+    border-radius:var(--radius-lg);
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.75);
+    overflow:hidden;
+  }
+  .info-modal-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:16px 16px 16px 20px;
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .info-modal-head h3{font-size:15.5px;font-weight:600;}
+  .info-modal-close{
+    all:unset;box-sizing:border-box;cursor:pointer;
+    width:28px;height:28px;border-radius:7px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--text-2);font-size:18px;line-height:1;
+    transition:background .15s var(--ease), color .15s var(--ease);
+  }
+  .info-modal-close:hover{background:var(--bg-card-hover);color:var(--text-1);}
+  .info-modal-body{
+    padding:16px 20px 22px;overflow-y:auto;
+    font-size:13.5px;line-height:1.65;color:var(--text-2);
+  }
+  .info-modal-body p{margin-bottom:12px;}
+  .info-modal-body p:last-child{margin-bottom:0;}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;z-index:280;
+    transform:translateX(-50%);
+    background:var(--bg-card);border:1px solid var(--border-strong);
+    color:var(--text-1);font-size:13px;font-weight:500;
+    padding:10px 18px;border-radius:999px;
+    box-shadow:0 14px 30px -12px rgba(0,0,0,.7);
+    opacity:0;pointer-events:none;
+    transition:opacity .25s var(--ease), transform .25s var(--ease);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-8px);}
+
+  @media (max-width:640px){
+    .info-modal{right:14px;left:14px;bottom:80px;width:auto;}
+    .info-fab{right:16px;bottom:16px;}
+  }
+
   footer{
     position:relative;z-index:1;
     max-width:1560px;margin:0 auto;padding:0 32px 40px;
@@ -418,6 +644,10 @@
       <span class="pulse-dot" aria-hidden="true"></span>
       <b id="live-count">0</b>&nbsp;в эфире&nbsp;·&nbsp;<span id="total-count">0</span>&nbsp;каналов
     </div>
+    <div class="online-ticker" id="online-ticker" hidden>
+      <span class="online-dot" aria-hidden="true"></span>
+      <b id="online-count">0</b>&nbsp;онлайн на сайте
+    </div>
     <div class="search-box">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input type="search" id="search-input" placeholder="Найти стримера…" aria-label="Поиск стримера">
@@ -435,6 +665,20 @@
         <span class="host-tag" id="host-tag" hidden>Плесень</span>
       </div>
       <div class="player-actions">
+        <div class="mode-switch" role="group" aria-label="Режим просмотра">
+          <button type="button" class="mode-btn" id="mode-single-btn" aria-pressed="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            Одиночный
+          </button>
+          <button type="button" class="mode-btn" id="mode-parallel-btn" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="14" y="3" width="7" height="18" rx="1.5"/></svg>
+            Параллельный
+          </button>
+        </div>
+        <button class="btn" id="clear-group-btn" type="button" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Очистить группу
+        </button>
         <a class="btn" id="open-twitch-btn" href="#" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
           Открыть на Twitch
@@ -447,7 +691,7 @@
     </div>
   </section>
 
-  <section class="theater">
+  <section class="theater" id="theater-single">
     <div class="player-frame">
       <span class="corner tl" aria-hidden="true"></span>
       <span class="corner tr" aria-hidden="true"></span>
@@ -461,11 +705,32 @@
         </div>
         <div class="hud-right" id="hud-viewers"></div>
       </div>
-      <iframe id="twitch-video" title="Проигрыватель Twitch" allowfullscreen></iframe>
+      <iframe id="twitch-video" title="Проигрыватель Twitch" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
     </div>
     <aside class="chat-wrapper" id="chat-container">
       <iframe id="twitch-chat" title="Чат Twitch"></iframe>
     </aside>
+  </section>
+
+  <section class="theater-multi" id="theater-multi" hidden>
+    <div class="multi-toolbar">
+      <div class="mode-switch" role="group" aria-label="Раскладка параллельного просмотра">
+        <button type="button" class="mode-btn" id="layout-static-btn" aria-pressed="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          По сетке
+        </button>
+        <button type="button" class="mode-btn" id="layout-free-btn" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9V5h4"/><path d="M15 5h4v4"/><path d="M19 15v4h-4"/><path d="M9 19H5v-4"/></svg>
+          Свободно
+        </button>
+      </div>
+    </div>
+    <div class="multi-empty" id="multi-empty">
+      <p>Группа пуста</p>
+      <p>Нажми на карточку стримера в списке ниже, чтобы добавить его в параллельный просмотр — можно выбрать до <span id="max-group-hint">6</span> каналов сразу. В свободном режиме окна можно перетаскивать за шапку и менять размер за правый нижний угол.</p>
+    </div>
+    <div class="multi-grid" id="multi-grid"></div>
+    <div class="multi-free" id="multi-free" hidden></div>
   </section>
 
   <section>
@@ -487,6 +752,21 @@
   <span>Сайт сделан вайб кодером, связь tg @egor_wires.</span>
   <span>© 42</span>
 </footer>
+
+<button type="button" class="info-fab" id="info-fab" aria-haspopup="dialog" aria-controls="info-modal" aria-label="Информация о сайте">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+</button>
+
+<div class="info-overlay" id="info-overlay" hidden></div>
+<div class="info-modal" id="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-modal-title" hidden>
+  <div class="info-modal-head">
+    <h3 id="info-modal-title">О сайте</h3>
+    <button type="button" class="info-modal-close" id="info-modal-close" aria-label="Закрыть">×</button>
+  </div>
+  <div class="info-modal-body" id="info-modal-body"></div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
 
 <noscript>Для работы сайта нужен JavaScript.</noscript>
 
@@ -512,7 +792,11 @@
   const CONFIG = {
     parentDomains: ['localhost', 'kyrsorr.github.io'],
     apiBase: 'https://soft-smoke-11cb.kirsanovbloger.workers.dev/', // <-- ДОРАБОТАТЬ: адрес твоего Worker, например 'https://freakland-api.твой-сабдомен.workers.dev'
-    pollIntervalMs: 60000
+    pollIntervalMs: 60000,
+    // Как часто спрашивать у Worker'а счётчик "онлайн на сайте".
+    // Если на Worker'е нет ручки /online — счётчик просто не появится,
+    // остальной сайт при этом работает как обычно (см. fetchOnlineCount).
+    onlineIntervalMs: 30000
   };
 
   /* ============================================================
@@ -538,7 +822,8 @@
     { id:'mefrusha' },
     { id:'ark1ks' },
     { id:'vaa_sem13' },
-    { id:'mark_d8_' }
+    { id:'mark_d8_' },
+    { id:'mishadesinov2' }
   ];
 
   /* ============================================================
@@ -548,6 +833,15 @@
   let isChatVisible = true;
   let searchQuery = '';
   let pollTimer = null;
+  let onlinePollTimer = null;
+  let visitorId = null;
+
+  // Режим просмотра: 'single' — один плеер как раньше,
+  // 'parallel' — сетка из нескольких каналов одновременно.
+  let viewMode = 'single';
+  // Набор id каналов, добавленных в группу параллельного просмотра.
+  const groupChannels = new Set();
+  const MAX_GROUP = 6;
 
   // Начальное состояние — все каналы «загружаются», пока не придёт
   // первый ответ от API-прокси.
@@ -571,11 +865,224 @@
   }
 
   function videoSrc(channel){
-    return `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&${parentParams()}&muted=true`;
+    return `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&${parentParams()}&muted=true&autoplay=true`;
   }
 
   function chatSrc(channel){
     return `https://www.twitch.tv/embed/${encodeURIComponent(channel)}/chat?${parentParams()}&darkpopout`;
+  }
+
+  /* ============================================================
+     ГРУППА ДЛЯ ПАРАЛЛЕЛЬНОГО ПРОСМОТРА — сохранение в localStorage,
+     чтобы группа и выбранный режим не терялись при обновлении
+     страницы.
+  ============================================================ */
+  function loadViewModePref(){
+    try{
+      return localStorage.getItem('fl_view_mode') === 'parallel' ? 'parallel' : 'single';
+    } catch(e){
+      return 'single';
+    }
+  }
+
+  function loadGroupState(){
+    try{
+      const raw = localStorage.getItem('fl_group');
+      const arr = raw ? JSON.parse(raw) : [];
+      if(Array.isArray(arr)){
+        arr.forEach(id => { if(streamerState[id]) groupChannels.add(id); });
+      }
+    } catch(e){ /* повреждённые данные в хранилище — просто начинаем с пустой группы */ }
+  }
+
+  function saveGroupState(){
+    try{
+      localStorage.setItem('fl_view_mode', viewMode);
+      localStorage.setItem('fl_group', JSON.stringify([...groupChannels]));
+    } catch(e){ /* localStorage недоступен (приватный режим и т.п.) — не критично */ }
+  }
+
+  // Раскладка параллельного просмотра: 'static' — фиксированная
+  // квадратная сетка (нельзя двигать/тянуть), 'free' — окна можно
+  // перетаскивать и менять им размер как угодно.
+  let multiLayoutMode = 'static';
+
+  function loadMultiLayoutMode(){
+    try{
+      return localStorage.getItem('fl_multi_layout') === 'free' ? 'free' : 'static';
+    } catch(e){
+      return 'static';
+    }
+  }
+
+  function saveMultiLayoutMode(){
+    try{ localStorage.setItem('fl_multi_layout', multiLayoutMode); }
+    catch(e){ /* localStorage недоступен — не критично */ }
+  }
+
+  // Положение и ширина окон в свободном режиме (x, y, w — в px).
+  // Высота всегда пересчитывается из ширины через aspect-ratio:16/9
+  // на .multi-tile-frame, так что картинка стрима не искажается.
+  const tileFreeState = {};
+
+  function loadTileFreeState(){
+    try{
+      const raw = localStorage.getItem('fl_tile_free');
+      const obj = raw ? JSON.parse(raw) : {};
+      Object.keys(obj || {}).forEach(id => {
+        const v = obj[id];
+        if(v && typeof v.x === 'number' && typeof v.y === 'number' && typeof v.w === 'number'){
+          tileFreeState[id] = { x:v.x, y:v.y, w:v.w };
+        }
+      });
+    } catch(e){ /* повреждённые данные — начинаем с автоматической расстановки */ }
+  }
+
+  function saveTileFreeState(){
+    try{ localStorage.setItem('fl_tile_free', JSON.stringify(tileFreeState)); }
+    catch(e){ /* localStorage недоступен — не критично */ }
+  }
+
+  // Сколько колонок отвести под N окон, чтобы они складывались в
+  // квадрат (как раскладка спикеров в Discord), а не в один ряд:
+  // 1→1, 2→2, 3 и 4→2, 5 и 6→3.
+  function computeMultiCols(n){
+    return n <= 1 ? 1 : Math.ceil(Math.sqrt(n));
+  }
+
+  function applyMultiLayoutModeUI(){
+    const staticBtn = document.getElementById('layout-static-btn');
+    const freeBtn = document.getElementById('layout-free-btn');
+    staticBtn.classList.toggle('active', multiLayoutMode === 'static');
+    staticBtn.setAttribute('aria-pressed', String(multiLayoutMode === 'static'));
+    freeBtn.classList.toggle('active', multiLayoutMode === 'free');
+    freeBtn.setAttribute('aria-pressed', String(multiLayoutMode === 'free'));
+    document.getElementById('multi-grid').hidden = multiLayoutMode !== 'static';
+    document.getElementById('multi-free').hidden = multiLayoutMode !== 'free';
+  }
+
+  function setMultiLayoutMode(mode){
+    multiLayoutMode = mode === 'free' ? 'free' : 'static';
+    saveMultiLayoutMode();
+    applyMultiLayoutModeUI();
+    renderMultiTheater();
+  }
+
+  /* ---- Свободный режим: перетаскивание за шапку окна + отслеживание
+     ручного изменения размера (у CSS resize нет отдельного события,
+     поэтому ловим mousedown рядом с правым нижним уголком). ---- */
+  const FREE_HEADER_H = 38;
+  const FREE_GAP = 16;
+  const FREE_MIN_H = 320;
+  const FREE_RESIZE_HIT = 20;
+
+  let draggingFreeTile = null, dragOffsetX = 0, dragOffsetY = 0;
+  let resizingFreeTile = null;
+  let freeTileResizeObserver = null;
+
+  function initFreeCanvasInteractions(){
+    document.addEventListener('mousemove', (e) => {
+      if(!draggingFreeTile) return;
+      const canvas = document.getElementById('multi-free');
+      const canvasRect = canvas.getBoundingClientRect();
+      const x = e.clientX - canvasRect.left - dragOffsetX;
+      const y = Math.max(0, e.clientY - canvasRect.top - dragOffsetY);
+      draggingFreeTile.style.left = x + 'px';
+      draggingFreeTile.style.top = y + 'px';
+      updateFreeCanvasHeight();
+    });
+
+    document.addEventListener('mouseup', () => {
+      if(draggingFreeTile){
+        const id = draggingFreeTile.dataset.channel;
+        const state = tileFreeState[id] || {};
+        state.x = parseFloat(draggingFreeTile.style.left) || 0;
+        state.y = parseFloat(draggingFreeTile.style.top) || 0;
+        state.w = Math.round(draggingFreeTile.getBoundingClientRect().width);
+        tileFreeState[id] = state;
+        saveTileFreeState();
+        draggingFreeTile.style.zIndex = '';
+        draggingFreeTile = null;
+        updateFreeCanvasHeight();
+      }
+      if(resizingFreeTile){
+        const id = resizingFreeTile.dataset.channel;
+        const state = tileFreeState[id] || {};
+        state.w = Math.round(resizingFreeTile.getBoundingClientRect().width);
+        state.x = parseFloat(resizingFreeTile.style.left) || state.x || 0;
+        state.y = parseFloat(resizingFreeTile.style.top) || state.y || 0;
+        tileFreeState[id] = state;
+        saveTileFreeState();
+        resizingFreeTile = null;
+        updateFreeCanvasHeight();
+      }
+    });
+  }
+
+  function initFreeTile(tile){
+    const head = tile.querySelector('.multi-tile-head');
+    if(head){
+      head.addEventListener('mousedown', (e) => {
+        if(e.target.closest('.multi-tile-actions')) return; // не мешаем кнопкам «открыть»/«убрать»
+        const canvas = document.getElementById('multi-free');
+        const canvasRect = canvas.getBoundingClientRect();
+        const tileRect = tile.getBoundingClientRect();
+        dragOffsetX = e.clientX - tileRect.left;
+        dragOffsetY = e.clientY - tileRect.top;
+        draggingFreeTile = tile;
+        tile.style.zIndex = 5;
+        e.preventDefault();
+      });
+    }
+    tile.addEventListener('mousedown', (e) => {
+      const rect = tile.getBoundingClientRect();
+      const nearRight = rect.right - e.clientX <= FREE_RESIZE_HIT;
+      const nearBottom = rect.bottom - e.clientY <= FREE_RESIZE_HIT;
+      if(nearRight && nearBottom) resizingFreeTile = tile;
+    });
+
+    if('ResizeObserver' in window){
+      if(!freeTileResizeObserver){
+        freeTileResizeObserver = new ResizeObserver(() => updateFreeCanvasHeight());
+      }
+      freeTileResizeObserver.observe(tile);
+    }
+  }
+
+  // Полотно растёт по высоте под самое нижнее окно, чтобы перетащенные
+  // или увеличенные стримы не обрезались и не уезжали за пределы зоны.
+  function updateFreeCanvasHeight(){
+    const canvas = document.getElementById('multi-free');
+    if(!canvas || canvas.hidden) return;
+    let maxBottom = 0;
+    canvas.querySelectorAll('.multi-tile[data-channel]').forEach(tile => {
+      const bottom = tile.offsetTop + tile.offsetHeight;
+      if(bottom > maxBottom) maxBottom = bottom;
+    });
+    canvas.style.height = Math.max(FREE_MIN_H, maxBottom + FREE_GAP) + 'px';
+  }
+
+  // Позиция окна по центру ВИДИМОЙ прямо сейчас части полотна (той,
+  // что попадает в окно браузера), а не по центру всего полотна —
+  // оно может быть намного выше/ниже видимой области экрана.
+  // Используется, когда окно нужно вернуть на глаза пользователю
+  // (см. toggleGroupMember), а не тащить его туда, где его когда-то
+  // оставили — иначе окно, утащенное за грань монитора, было бы
+  // невозможно найти и вернуть обратно.
+  function centerFreeTilePosition(tileW, tileH){
+    const canvas = document.getElementById('multi-free');
+    const rect = canvas.getBoundingClientRect();
+    const visLeft = Math.max(0, -rect.left);
+    const visTop = Math.max(0, -rect.top);
+    const visRight = Math.min(rect.width, window.innerWidth - rect.left);
+    const visBottom = Math.min(rect.height, window.innerHeight - rect.top);
+    const hasVisible = visRight > visLeft && visBottom > visTop;
+    const centerX = hasVisible ? (visLeft + visRight) / 2 : rect.width / 2;
+    const centerY = hasVisible ? (visTop + visBottom) / 2 : rect.height / 2;
+    return {
+      x: Math.max(0, Math.round(centerX - tileW / 2)),
+      y: Math.max(0, Math.round(centerY - tileH / 2))
+    };
   }
 
   function formatViewers(n){
@@ -663,11 +1170,24 @@
       const host = CHANNELS.find(c => c.isHost && streamerState[c.id].found);
       const fallback = firstLive || host || CHANNELS.find(c => streamerState[c.id].found) || CHANNELS[0];
       selectStream(fallback.id);
-    } else {
-      refreshNowPlaying();
     }
+    // Вызываем и на самой первой загрузке данных тоже — чтобы
+    // тайлы параллельного просмотра сразу получили имена/статусы
+    // вместо "Загрузка…", даже если они уже стримятся без клика.
+    refreshActiveView();
 
     renderGrids();
+  }
+
+  // Обновляет то, что сейчас показано пользователю, в зависимости
+  // от режима: карточку текущего канала в одиночном режиме или
+  // "шапки" тайлов в параллельном. src у iframe'ов здесь не трогаем.
+  function refreshActiveView(){
+    if(viewMode === 'single'){
+      refreshNowPlaying();
+    } else {
+      refreshMultiTileMeta();
+    }
   }
 
   function startPolling(){
@@ -675,12 +1195,69 @@
     pollTimer = setInterval(fetchStreamData, CONFIG.pollIntervalMs);
   }
 
+  /* ============================================================
+     СЧЁТЧИК "ОНЛАЙН НА САЙТЕ"
+     ------------------------------------------------------------
+     GitHub Pages отдаёт только статические файлы, своего сервера
+     у него нет — значит настоящий счётчик живых посетителей
+     сайт сам по себе показать не может. Но у тебя уже есть
+     Cloudflare Worker (CONFIG.apiBase) для Twitch API, и на него
+     можно повесить ещё одну лёгкую ручку GET /online, которая:
+       1) записывает "я тут" для текущего посетителя (по vid) на
+          короткое время (TTL ~60-90 сек) в Workers KV;
+       2) возвращает {"count": N} — сколько таких записей ещё живо.
+     Браузер просто дергает эту ручку каждые onlineIntervalMs —
+     это одновременно и "пинг" от посетителя, и обновление числа.
+     Если такой ручки на Worker'е нет (или она вернула ошибку),
+     плашка счётчика остаётся скрытой и сайт работает как обычно —
+     это осознанно "тихий" отказ, без баннеров с ошибками.
+  ============================================================ */
+  function getVisitorId(){
+    if(visitorId) return visitorId;
+    try{
+      visitorId = localStorage.getItem('fl_visitor_id');
+      if(!visitorId){
+        visitorId = (window.crypto && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : 'v-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('fl_visitor_id', visitorId);
+      }
+    } catch(e){
+      visitorId = 'v-' + Math.random().toString(36).slice(2);
+    }
+    return visitorId;
+  }
+
+  async function fetchOnlineCount(){
+    if(!CONFIG.apiBase) return;
+    try{
+      const base = CONFIG.apiBase.replace(/\/$/, '');
+      const res = await fetch(`${base}/online?vid=${encodeURIComponent(getVisitorId())}`);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const count = Number(data.count);
+      if(!Number.isFinite(count)) return;
+      document.getElementById('online-count').textContent = count;
+      document.getElementById('online-ticker').hidden = false;
+    } catch(err){
+      // Ручки /online ещё нет на Worker'е (или сеть подвела) — просто
+      // не показываем счётчик, ничего не ломаем для посетителей.
+      console.debug('Счётчик онлайна недоступен:', err);
+    }
+  }
+
+  function startOnlinePolling(){
+    if(onlinePollTimer) clearInterval(onlinePollTimer);
+    onlinePollTimer = setInterval(fetchOnlineCount, CONFIG.onlineIntervalMs);
+  }
+
   document.addEventListener('visibilitychange', () => {
     if(document.hidden){
       if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
-    } else if(!pollTimer){
-      fetchStreamData();
-      startPolling();
+      if(onlinePollTimer){ clearInterval(onlinePollTimer); onlinePollTimer = null; }
+    } else {
+      if(!pollTimer){ fetchStreamData(); startPolling(); }
+      if(!onlinePollTimer){ fetchOnlineCount(); startOnlinePolling(); }
     }
   });
 
@@ -688,16 +1265,283 @@
      РЕНДЕР
   ============================================================ */
   function init(){
-    renderGrids();
+    viewMode = loadViewModePref();
+    loadGroupState();
+    multiLayoutMode = loadMultiLayoutMode();
+    loadTileFreeState();
+    applyMultiLayoutModeUI();
+    initFreeCanvasInteractions();
 
     document.getElementById('chat-toggle-btn').addEventListener('click', toggleChat);
+    document.getElementById('mode-single-btn').addEventListener('click', () => setViewMode('single'));
+    document.getElementById('mode-parallel-btn').addEventListener('click', () => setViewMode('parallel'));
+    document.getElementById('clear-group-btn').addEventListener('click', clearGroup);
+    document.getElementById('layout-static-btn').addEventListener('click', () => setMultiLayoutMode('static'));
+    document.getElementById('layout-free-btn').addEventListener('click', () => setMultiLayoutMode('free'));
     document.getElementById('search-input').addEventListener('input', function(e){
       searchQuery = e.target.value.trim().toLowerCase();
       renderGrids();
     });
 
+    document.getElementById('max-group-hint').textContent = MAX_GROUP;
+    setViewMode(viewMode);
+    initInfoModal();
+
     fetchStreamData();
     startPolling();
+    fetchOnlineCount();
+    startOnlinePolling();
+  }
+
+  /* ============================================================
+     РЕЖИМЫ ПРОСМОТРА И ГРУППА ДЛЯ ПАРАЛЛЕЛЬНОГО ПРОСМОТРА
+  ============================================================ */
+  function setViewMode(mode){
+    viewMode = mode === 'parallel' ? 'parallel' : 'single';
+    saveGroupState();
+
+    const singleBtn = document.getElementById('mode-single-btn');
+    const parallelBtn = document.getElementById('mode-parallel-btn');
+    singleBtn.classList.toggle('active', viewMode === 'single');
+    singleBtn.setAttribute('aria-pressed', String(viewMode === 'single'));
+    parallelBtn.classList.toggle('active', viewMode === 'parallel');
+    parallelBtn.setAttribute('aria-pressed', String(viewMode === 'parallel'));
+
+    document.getElementById('theater-single').hidden = viewMode !== 'single';
+    document.getElementById('theater-multi').hidden = viewMode !== 'parallel';
+    document.getElementById('open-twitch-btn').hidden = viewMode !== 'single';
+    document.getElementById('chat-toggle-btn').hidden = viewMode !== 'single';
+    document.getElementById('clear-group-btn').hidden = viewMode !== 'parallel';
+
+    if(viewMode === 'parallel') renderMultiTheater();
+    updateNowPlayingBar();
+    renderGrids();
+  }
+
+  // Текст/бейджи над плеером — своё содержимое для каждого режима.
+  function updateNowPlayingBar(){
+    const badge = document.getElementById('status-badge');
+    if(viewMode === 'parallel'){
+      badge.hidden = true;
+      document.getElementById('host-tag').hidden = true;
+      document.getElementById('current-name').textContent = groupChannels.size
+        ? `Параллельный просмотр · ${groupChannels.size} из ${MAX_GROUP}`
+        : 'Параллельный просмотр — группа пуста';
+    } else {
+      badge.hidden = false;
+      refreshNowPlaying();
+    }
+  }
+
+  function toggleGroupMember(channelId){
+    if(!streamerState[channelId]) return;
+    if(groupChannels.has(channelId)){
+      groupChannels.delete(channelId);
+    } else {
+      if(groupChannels.size >= MAX_GROUP){
+        showToast(`Можно добавить не больше ${MAX_GROUP} стримов одновременно`);
+        return;
+      }
+      groupChannels.add(channelId);
+      // Окно всегда появляется по центру экрана, а не в точке, где
+      // его когда-то оставили в свободном режиме.
+      if(multiLayoutMode === 'free'){
+        const tileW = (tileFreeState[channelId] && tileFreeState[channelId].w) || 320;
+        const tileH = Math.round(tileW * 9 / 16) + FREE_HEADER_H;
+        tileFreeState[channelId] = { ...centerFreeTilePosition(tileW, tileH), w: tileW };
+        saveTileFreeState();
+      }
+    }
+    saveGroupState();
+    renderMultiTheater();
+    updateNowPlayingBar();
+    renderGrids();
+  }
+
+  function clearGroup(){
+    groupChannels.clear();
+    saveGroupState();
+    renderMultiTheater();
+    updateNowPlayingBar();
+    renderGrids();
+  }
+
+  function multiTileHtml(channelId){
+    const s = streamerState[channelId];
+    const viewers = s.loaded && s.isLive ? `<span class="multi-tile-viewers">👁 ${formatViewers(s.viewers)}</span>` : '';
+    return `
+      <div class="multi-tile" data-channel="${escapeHtml(channelId)}">
+        <div class="multi-tile-head">
+          <span class="multi-tile-dot ${s.loaded && s.isLive ? 'on' : ''}"></span>
+          <span class="multi-tile-name">${escapeHtml(s.name)}</span>
+          ${viewers}
+          <div class="multi-tile-actions">
+            <a href="https://twitch.tv/${encodeURIComponent(channelId)}" target="_blank" rel="noopener" title="Открыть на Twitch" aria-label="Открыть ${escapeHtml(s.name)} на Twitch">↗</a>
+            <button type="button" data-remove="${escapeHtml(channelId)}" title="Убрать из группы" aria-label="Убрать ${escapeHtml(s.name)} из группы">×</button>
+          </div>
+        </div>
+        <div class="multi-tile-frame">
+          <iframe src="${videoSrc(channelId)}" title="${escapeHtml(s.name)}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+        </div>
+      </div>`;
+  }
+
+  // Полная перерисовка параллельного просмотра — вызывается только
+  // когда меняется состав группы, режим или раскладка, чтобы не
+  // перезагружать чужие iframe'ы почём зря. Всегда рендерит только
+  // активный контейнер (сетка/свобода), второй очищается, чтобы не
+  // играли два экземпляра одного и того же стрима одновременно.
+  function renderMultiTheater(){
+    const ids = [...groupChannels].filter(id => streamerState[id]);
+    document.getElementById('multi-empty').hidden = ids.length !== 0;
+
+    if(multiLayoutMode === 'free'){
+      document.getElementById('multi-grid').innerHTML = '';
+      renderFreeCanvas(ids);
+    } else {
+      document.getElementById('multi-free').innerHTML = '';
+      renderStaticGrid(ids);
+    }
+  }
+
+  function bindMultiTileRemove(container){
+    container.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        groupChannels.delete(btn.dataset.remove);
+        saveGroupState();
+        renderMultiTheater();
+        updateNowPlayingBar();
+        renderGrids();
+      });
+    });
+  }
+
+  // Режим «по сетке»: фиксированные окна одинакового размера,
+  // складывающиеся в квадрат — двигать и тянуть их нельзя.
+  function renderStaticGrid(ids){
+    const grid = document.getElementById('multi-grid');
+    grid.style.setProperty('--cols', computeMultiCols(ids.length));
+    grid.innerHTML = ids.map(multiTileHtml).join('');
+    bindMultiTileRemove(grid);
+  }
+
+  // Режим «свободно»: окна на полотне с произвольным положением и
+  // шириной — двигаются за шапку, тянутся за правый нижний угол.
+  function renderFreeCanvas(ids){
+    const canvas = document.getElementById('multi-free');
+    canvas.innerHTML = ids.map(multiTileHtml).join('');
+
+    // Окнам без сохранённого положения даём стартовую расстановку
+    // квадратом внутри полотна — дальше их можно свободно двигать.
+    const missing = ids.filter(id => !tileFreeState[id]);
+    if(missing.length){
+      const cols = computeMultiCols(ids.length);
+      const canvasWidth = canvas.clientWidth || 900;
+      const tileW = Math.max(220, Math.round((canvasWidth - FREE_GAP * (cols - 1)) / cols));
+      ids.forEach((id, i) => {
+        if(tileFreeState[id]) return;
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const tileH = Math.round(tileW * 9 / 16) + FREE_HEADER_H;
+        tileFreeState[id] = {
+          x: col * (tileW + FREE_GAP),
+          y: row * (tileH + FREE_GAP),
+          w: tileW
+        };
+      });
+      saveTileFreeState();
+    }
+
+    canvas.querySelectorAll('.multi-tile[data-channel]').forEach(tile => {
+      const state = tileFreeState[tile.dataset.channel];
+      if(state){
+        tile.style.left = state.x + 'px';
+        tile.style.top = state.y + 'px';
+        tile.style.width = state.w + 'px';
+      }
+      initFreeTile(tile);
+    });
+
+    bindMultiTileRemove(canvas);
+    updateFreeCanvasHeight();
+  }
+
+  // Лёгкое обновление шапок тайлов (имя, статус, зрители) при
+  // очередном опросе API — без пересоздания iframe'ов.
+  function refreshMultiTileMeta(){
+    document.querySelectorAll('.multi-tile[data-channel]').forEach(tile => {
+      const s = streamerState[tile.dataset.channel];
+      if(!s) return;
+      tile.querySelector('.multi-tile-dot').classList.toggle('on', s.loaded && s.isLive);
+      tile.querySelector('.multi-tile-name').textContent = s.name;
+      const viewersEl = tile.querySelector('.multi-tile-viewers');
+      if(viewersEl) viewersEl.textContent = s.loaded && s.isLive ? '👁 ' + formatViewers(s.viewers) : '';
+    });
+    updateNowPlayingBar();
+  }
+
+  let toastTimer = null;
+  function showToast(message){
+    const el = document.getElementById('toast');
+    el.textContent = message;
+    el.hidden = false;
+    requestAnimationFrame(() => el.classList.add('show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(() => { el.hidden = true; }, 250);
+    }, 2400);
+  }
+
+  /* ============================================================
+     ИНФОРМАЦИЯ О САЙТЕ
+     ------------------------------------------------------------
+     Впиши сюда свой текст вместо примера — просто отредактируй
+     содержимое INFO_TEXT ниже. Пустая строка между строк = новый
+     абзац, одиночный перенос строки = <br>. Текст автоматически
+     экранируется, так что вставлять туда что угодно безопасно.
+  ============================================================ */
+  const INFO_TEXT = `ПРИМЕР ПРИМЕР ПРИМЕР
+
+ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР.`;
+
+  function renderInfoText(text){
+    return String(text || '')
+      .split(/\n\s*\n/)
+      .map(block => block.trim())
+      .filter(Boolean)
+      .map(block => `<p>${escapeHtml(block).replace(/\n/g, '<br>')}</p>`)
+      .join('');
+  }
+
+  function initInfoModal(){
+    const fab = document.getElementById('info-fab');
+    const overlay = document.getElementById('info-overlay');
+    const modal = document.getElementById('info-modal');
+    const closeBtn = document.getElementById('info-modal-close');
+
+    document.getElementById('info-modal-body').innerHTML = renderInfoText(INFO_TEXT);
+
+    function onKeydown(e){
+      if(e.key === 'Escape') closeInfo();
+    }
+    function openInfo(){
+      overlay.hidden = false;
+      modal.hidden = false;
+      closeBtn.focus();
+      document.addEventListener('keydown', onKeydown);
+    }
+    function closeInfo(){
+      overlay.hidden = true;
+      modal.hidden = true;
+      fab.focus();
+      document.removeEventListener('keydown', onKeydown);
+    }
+
+    fab.addEventListener('click', openInfo);
+    overlay.addEventListener('click', closeInfo);
+    closeBtn.addEventListener('click', closeInfo);
   }
 
   function selectStream(channelId){
@@ -753,7 +1597,8 @@
   }
 
   function cardHtml(streamer, index){
-    const isActive = streamer.id === currentChannel;
+    const isActive = viewMode === 'single' && streamer.id === currentChannel;
+    const isInGroup = groupChannels.has(streamer.id);
     const ch = chNumber(index);
 
     if(!streamer.loaded){
@@ -795,14 +1640,19 @@
     const avatarUrl = streamer.avatar || fallbackImg;
 
     const hostBadge = streamer.isHost ? '<span class="mini-host">Плесень</span>' : '';
+    const groupBadge = '<span class="card-group-badge" aria-hidden="true">✓ группа</span>';
+
+    const statusLabel = viewMode === 'parallel'
+      ? (isInGroup ? 'в группе параллельного просмотра, нажми чтобы убрать' : 'нажми чтобы добавить в параллельный просмотр')
+      : (streamer.isLive ? 'в эфире' : 'офлайн');
 
     return `
-      <button type="button" class="card ${isActive?'active':''} ${streamer.isLive?'':'offline'}"
+      <button type="button" class="card ${isActive?'active':''} ${(viewMode === 'parallel' && isInGroup)?'in-group':''} ${streamer.isLive?'':'offline'}"
         data-id="${escapeHtml(streamer.id)}"
-        aria-pressed="${isActive}"
-        aria-label="${escapeHtml(streamer.name)} — ${streamer.isLive?'в эфире':'офлайн'} — ${escapeHtml(streamer.title)}">
+        aria-pressed="${viewMode === 'parallel' ? isInGroup : isActive}"
+        aria-label="${escapeHtml(streamer.name)} — ${statusLabel} — ${escapeHtml(streamer.title)}">
         <span class="card-ch">${ch}</span>
-        <div class="thumb" style="background-image:url('${thumbUrl}')">${badgesHtml}</div>
+        <div class="thumb" style="background-image:url('${thumbUrl}')">${badgesHtml}${groupBadge}</div>
         <div class="card-body">
           <img class="avatar" src="${avatarUrl}" alt="" loading="lazy">
           <div class="text-info">
@@ -836,7 +1686,13 @@
       : `<div class="empty-note">Ничего не найдено.</div>`;
 
     document.querySelectorAll('.card[data-id]').forEach(card => {
-      card.addEventListener('click', () => selectStream(card.dataset.id));
+      card.addEventListener('click', () => {
+        if(viewMode === 'parallel'){
+          toggleGroupMember(card.dataset.id);
+        } else {
+          selectStream(card.dataset.id);
+        }
+      });
     });
 
     const loaded = CHANNELS.map(c => streamerState[c.id]).filter(s => s.loaded && s.found);
