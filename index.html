@@ -287,6 +287,14 @@
     border:1px dashed var(--border);border-radius:var(--radius-md);
   }
 
+  .api-status{
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;
+    color:#ffb4b4;background:rgba(255,71,87,.1);
+    border:1px solid rgba(255,71,87,.28);
+    padding:10px 14px;border-radius:10px;
+    margin-bottom:16px;
+  }
+
   /* ---- Cards ---- */
   .card{
     all:unset;
@@ -419,6 +427,7 @@
 
 <main>
   <section>
+    <div class="api-status" id="api-status" hidden></div>
     <div class="player-bar">
       <div class="now-playing">
         <span class="status-badge" id="status-badge">LIVE</span>
@@ -476,7 +485,7 @@
 </main>
 
 <footer>
-  <span>Статусы каналов и число зрителей заданы вручную в коде — для автообновления нужна интеграция с Twitch API.</span>
+  <span>Данные о трансляциях обновляются с Twitch каждую минуту через собственный API-прокси.</span>
   <span>Фан-проект сообщества, не связан с Twitch Interactive, Inc.</span>
 </footer>
 
@@ -489,59 +498,48 @@
   /* ============================================================
      НАСТРОЙКИ
      ------------------------------------------------------------
-     parentDomains — сюда добавь домен(ы), на которых будет жить
-     сайт. Twitch требует точное совпадение parent с адресом
-     страницы, иначе плеер и чат откажутся грузиться.
-     Для локальной разработки оставь 'localhost'.
-     Пример для продакшена:
-       parentDomains: ['localhost', 'freakland-live.ru', 'www.freakland-live.ru']
+     parentDomains — домены, на которых живёт сайт. Twitch требует
+     точное совпадение parent с адресом страницы для плеера и чата.
+     Сейчас здесь реальный адрес GitHub Pages + localhost для
+     локальной разработки.
+
+     apiBase — адрес API-прокси (Cloudflare Worker), который
+     безопасно ходит в Twitch Helix API и отдаёт данные о
+     трансляциях. Дёргать Twitch API прямо из браузера нельзя —
+     для этого нужен секретный ключ, а его нельзя публиковать в
+     статическом сайте на GitHub Pages. Как поднять прокси —
+     см. файл twitch-proxy-worker.js.
   ============================================================ */
   const CONFIG = {
-    parentDomains: ['localhost'] // <-- ДОРАБОТАТЬ: добавь сюда свой домен перед публикацией
+    parentDomains: ['localhost', 'kyrsorr.github.io'],
+    apiBase: '', // <-- ДОРАБОТАТЬ: адрес твоего Worker, например 'https://freakland-api.твой-сабдомен.workers.dev'
+    pollIntervalMs: 60000
   };
 
   /* ============================================================
-     СПИСОК СТРИМЕРОВ
+     СПИСОК КАНАЛОВ
      ------------------------------------------------------------
-     Чтобы добавить реального стримера вместо заглушки — замени
-     объект-заглушку (isPlaceholder:true) на реальные данные и
-     поставь isPlaceholder:false, isLive в актуальное состояние.
-     id — это ник канала на Twitch (из ссылки twitch.tv/ник).
+     Только ники (login из ссылки twitch.tv/ник). Всё остальное —
+     статус, название стрима, зрители, аватар, превью — приходит
+     из Twitch через API-прокси и обновляется само.
   ============================================================ */
-  const streamers = [
-    {
-      id:'cacto0o', name:'cacto0o', isLive:true, isPlaceholder:false,
-      title:'Гриндим ресы на FreakLand', viewers:245,
-      avatar:'https://ui-avatars.com/api/?name=cacto0o&background=1c1c29&color=9146ff&bold=true',
-      thumbnail:'https://static-cdn.jtvnw.net/previews-ttv/live_user_cacto0o-440x248.jpg'
-    },
-    {
-      id:'xepomc', name:'xepomc', isLive:true, isPlaceholder:false,
-      title:'СТРОИМ БАЗУ | FreakLand', viewers:120,
-      avatar:'https://ui-avatars.com/api/?name=xepomc&background=1c1c29&color=9146ff&bold=true',
-      thumbnail:'https://static-cdn.jtvnw.net/previews-ttv/live_user_xepomc-440x248.jpg'
-    },
-    {
-      id:'bricksral', name:'bricksral', isLive:true, isPlaceholder:false,
-      title:'ФРИК ЛЕНД ВПЕРЁД', viewers:85,
-      avatar:'https://ui-avatars.com/api/?name=bricksral&background=1c1c29&color=9146ff&bold=true',
-      thumbnail:'https://static-cdn.jtvnw.net/previews-ttv/live_user_bricksral-440x248.jpg'
-    },
-    {
-      id:'5opka', name:'Пятёрка', isLive:false, isPlaceholder:false, isHost:true,
-      title:'Стрим окончен — загляни попозже', viewers:0,
-      avatar:'https://ui-avatars.com/api/?name=5opka&background=1c1c29&color=9146ff&bold=true',
-      thumbnail:''
-    },
-
-    // ДОРАБОТАТЬ: свободные слоты под остальных стримеров сервера (~6 шт).
-    // Замени по одному по мере готовности реальных ников.
-    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' },
-    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' },
-    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' },
-    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' },
-    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' },
-    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' }
+  const CHANNELS = [
+    { id:'5opka', isHost:true },
+    { id:'xahob' },
+    { id:'cacto0o' },
+    { id:'vipsss' },
+    { id:'xepom' },
+    { id:'anjapanda' },
+    { id:'evgexa' },
+    { id:'milyan' },
+    { id:'c0rqi' },
+    { id:'paula_hlopova' },
+    { id:'fenechka1' },
+    { id:'fearplay' },
+    { id:'mefrusha' },
+    { id:'ark1ks' },
+    { id:'vaa_sem13' },
+    { id:'mark_d8_' }
   ];
 
   /* ============================================================
@@ -550,6 +548,18 @@
   let currentChannel = null;
   let isChatVisible = true;
   let searchQuery = '';
+  let pollTimer = null;
+
+  // Начальное состояние — все каналы «загружаются», пока не придёт
+  // первый ответ от API-прокси.
+  const streamerState = {};
+  CHANNELS.forEach(ch => {
+    streamerState[ch.id] = {
+      id: ch.id, name: ch.id, isLive:false, title:'Загрузка…',
+      viewers:0, avatar:'', thumbnail:'', isHost: !!ch.isHost,
+      found:true, loaded:false
+    };
+  });
 
   function escapeHtml(str){
     const div = document.createElement('div');
@@ -587,27 +597,130 @@
     return 'CH-' + String(index+1).padStart(2,'0');
   }
 
+  function showApiStatus(message){
+    const el = document.getElementById('api-status');
+    el.textContent = message;
+    el.hidden = false;
+  }
+
+  function hideApiStatus(){
+    document.getElementById('api-status').hidden = true;
+  }
+
+  /* ============================================================
+     ЖИВЫЕ ДАННЫЕ С TWITCH
+  ============================================================ */
+  async function fetchStreamData(){
+    if(!CONFIG.apiBase){
+      showApiStatus('API-прокси не настроен: впиши адрес своего Cloudflare Worker в CONFIG.apiBase — иначе данные о трансляциях грузиться не будут.');
+      return;
+    }
+    const logins = CHANNELS.map(c => c.id).join(',');
+    try{
+      const base = CONFIG.apiBase.replace(/\/$/, '');
+      const res = await fetch(`${base}/streams?logins=${encodeURIComponent(logins)}`);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      applyStreamData(data);
+      hideApiStatus();
+    } catch(err){
+      console.error('Не удалось получить данные с Twitch:', err);
+      showApiStatus('Не удалось получить данные с Twitch. Проверь, что Worker запущен и доступен по адресу в CONFIG.apiBase.');
+    }
+  }
+
+  function applyStreamData(data){
+    const streamsByLogin = {};
+    (data.streams || []).forEach(s => { streamsByLogin[String(s.user_login).toLowerCase()] = s; });
+    const usersByLogin = {};
+    (data.users || []).forEach(u => { usersByLogin[String(u.login).toLowerCase()] = u; });
+
+    CHANNELS.forEach(ch => {
+      const login = ch.id.toLowerCase();
+      const stream = streamsByLogin[login];
+      const user = usersByLogin[login];
+      const isLive = !!stream;
+      const avatar = user ? user.profile_image_url : '';
+      const thumbnail = isLive && stream.thumbnail_url
+        ? stream.thumbnail_url.replace('{width}', '440').replace('{height}', '248')
+        : avatar;
+
+      streamerState[ch.id] = {
+        id: ch.id,
+        name: (user && user.display_name) || (stream && stream.user_name) || ch.id,
+        isLive,
+        isHost: !!ch.isHost,
+        title: isLive ? stream.title : 'Сейчас офлайн',
+        viewers: isLive ? stream.viewer_count : 0,
+        avatar,
+        thumbnail,
+        found: !!user,
+        loaded: true
+      };
+    });
+
+    if(!currentChannel){
+      const firstLive = CHANNELS.find(c => streamerState[c.id].isLive && streamerState[c.id].found);
+      const host = CHANNELS.find(c => c.isHost && streamerState[c.id].found);
+      const fallback = firstLive || host || CHANNELS.find(c => streamerState[c.id].found) || CHANNELS[0];
+      selectStream(fallback.id);
+    } else {
+      refreshNowPlaying();
+    }
+
+    renderGrids();
+  }
+
+  function startPolling(){
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(fetchStreamData, CONFIG.pollIntervalMs);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden){
+      if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+    } else if(!pollTimer){
+      fetchStreamData();
+      startPolling();
+    }
+  });
+
   /* ============================================================
      РЕНДЕР
   ============================================================ */
   function init(){
     renderGrids();
-    const firstLive = streamers.find(s => s.isLive && !s.isPlaceholder);
-    const fallback = streamers.find(s => !s.isPlaceholder);
-    selectStream((firstLive || fallback).id);
 
     document.getElementById('chat-toggle-btn').addEventListener('click', toggleChat);
     document.getElementById('search-input').addEventListener('input', function(e){
       searchQuery = e.target.value.trim().toLowerCase();
       renderGrids();
     });
+
+    fetchStreamData();
+    startPolling();
   }
 
   function selectStream(channelId){
-    const streamer = streamers.find(s => s.id === channelId);
-    if(!streamer || streamer.isPlaceholder) return;
+    const streamer = streamerState[channelId];
+    if(!streamer) return;
 
     currentChannel = channelId;
+
+    document.getElementById('twitch-video').src = videoSrc(channelId);
+    document.getElementById('twitch-chat').src = chatSrc(channelId);
+
+    refreshNowPlaying();
+    renderGrids();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Обновляет текст/бейджи текущего канала (зрители, статус),
+  // но НЕ трогает src у iframe — иначе видео и чат перезагружались
+  // бы при каждом опросе API.
+  function refreshNowPlaying(){
+    const streamer = streamerState[currentChannel];
+    if(!streamer) return;
 
     document.getElementById('current-name').textContent = streamer.name;
     document.getElementById('hud-name').textContent = streamer.name;
@@ -616,25 +729,14 @@
     badge.textContent = streamer.isLive ? 'LIVE' : 'OFFLINE';
     badge.className = 'status-badge ' + (streamer.isLive ? 'is-live' : 'is-offline');
 
-    const hudDot = document.getElementById('hud-dot');
-    hudDot.classList.toggle('on', streamer.isLive);
+    document.getElementById('hud-dot').classList.toggle('on', streamer.isLive);
+    document.getElementById('hud-viewers').textContent = streamer.isLive ? '👁 ' + formatViewers(streamer.viewers) : '';
 
-    const hudViewers = document.getElementById('hud-viewers');
-    hudViewers.textContent = streamer.isLive ? '👁 ' + formatViewers(streamer.viewers) : '';
-
-    const idx = streamers.findIndex(s => s.id === channelId);
+    const idx = CHANNELS.findIndex(c => c.id === currentChannel);
     document.getElementById('hud-ch').textContent = chNumber(idx);
 
-    const hostTag = document.getElementById('host-tag');
-    hostTag.hidden = !streamer.isHost;
-
-    document.getElementById('open-twitch-btn').href = `https://twitch.tv/${channelId}`;
-
-    document.getElementById('twitch-video').src = videoSrc(channelId);
-    document.getElementById('twitch-chat').src = chatSrc(channelId);
-
-    renderGrids();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('host-tag').hidden = !streamer.isHost;
+    document.getElementById('open-twitch-btn').href = `https://twitch.tv/${currentChannel}`;
   }
 
   function toggleChat(){
@@ -655,15 +757,29 @@
     const isActive = streamer.id === currentChannel;
     const ch = chNumber(index);
 
-    if(streamer.isPlaceholder){
+    if(!streamer.loaded){
       return `
         <div class="card card--empty">
           <span class="card-ch">${ch}</span>
-          <div class="thumb"><span class="empty-plus" aria-hidden="true">+</span></div>
+          <div class="thumb"><span class="empty-plus" aria-hidden="true">⋯</span></div>
           <div class="card-body">
             <div class="text-info">
-              <div class="title">${escapeHtml(streamer.title)}</div>
-              <div class="name">${escapeHtml(streamer.name)}</div>
+              <div class="title">Загрузка…</div>
+              <div class="name">${escapeHtml(streamer.id)}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    if(!streamer.found){
+      return `
+        <div class="card card--empty" title="Twitch не нашёл такой канал — проверь ник в CHANNELS">
+          <span class="card-ch">${ch}</span>
+          <div class="thumb"><span class="empty-plus" aria-hidden="true">?</span></div>
+          <div class="card-body">
+            <div class="text-info">
+              <div class="title">Канал не найден</div>
+              <div class="name">${escapeHtml(streamer.id)}</div>
             </div>
           </div>
         </div>`;
@@ -675,9 +791,9 @@
         <span class="badge-viewers">${signalBarsHtml(streamer.viewers)}${formatViewers(streamer.viewers)}</span>
       </div>` : '';
 
-    const thumbUrl = streamer.isLive && streamer.thumbnail
-      ? streamer.thumbnail
-      : `https://ui-avatars.com/api/?name=${encodeURIComponent(streamer.name)}&background=161620&color=2e2e3d&size=500`;
+    const fallbackImg = `https://ui-avatars.com/api/?name=${encodeURIComponent(streamer.name)}&background=161620&color=2e2e3d&size=500`;
+    const thumbUrl = streamer.thumbnail || streamer.avatar || fallbackImg;
+    const avatarUrl = streamer.avatar || fallbackImg;
 
     const hostBadge = streamer.isHost ? '<span class="mini-host">ХОСТ</span>' : '';
 
@@ -689,7 +805,7 @@
         <span class="card-ch">${ch}</span>
         <div class="thumb" style="background-image:url('${thumbUrl}')">${badgesHtml}</div>
         <div class="card-body">
-          <img class="avatar" src="${streamer.avatar}" alt="" loading="lazy">
+          <img class="avatar" src="${avatarUrl}" alt="" loading="lazy">
           <div class="text-info">
             <div class="title" title="${escapeHtml(streamer.title)}">${escapeHtml(streamer.title)}</div>
             <div class="name-row">
@@ -705,13 +821,12 @@
     const liveGrid = document.getElementById('live-grid');
     const offlineGrid = document.getElementById('offline-grid');
 
-    const filtered = streamers
-      .map((s, i) => ({ s, i }))
-      .filter(({s}) => s.isPlaceholder || matchesSearch(s));
+    const all = CHANNELS.map((c, i) => ({ s: streamerState[c.id], i }));
+    const filtered = all.filter(({s}) => !s.loaded || !s.found || matchesSearch(s));
 
-    const live = filtered.filter(({s}) => s.isLive && !s.isPlaceholder)
+    const live = filtered.filter(({s}) => s.loaded && s.found && s.isLive)
       .sort((a,b) => b.s.viewers - a.s.viewers);
-    const offline = filtered.filter(({s}) => !s.isLive || s.isPlaceholder);
+    const offline = filtered.filter(({s}) => !s.loaded || !s.found || !s.isLive);
 
     liveGrid.innerHTML = live.length
       ? live.map(({s,i}) => cardHtml(s,i)).join('')
@@ -725,10 +840,9 @@
       card.addEventListener('click', () => selectStream(card.dataset.id));
     });
 
-    const liveCountReal = streamers.filter(s => s.isLive && !s.isPlaceholder).length;
-    const totalReal = streamers.filter(s => !s.isPlaceholder).length;
-    document.getElementById('live-count').textContent = liveCountReal;
-    document.getElementById('total-count').textContent = totalReal;
+    const loaded = CHANNELS.map(c => streamerState[c.id]).filter(s => s.loaded && s.found);
+    document.getElementById('live-count').textContent = loaded.filter(s => s.isLive).length;
+    document.getElementById('total-count').textContent = CHANNELS.length;
     document.getElementById('live-section-count').textContent = live.length;
     document.getElementById('offline-section-count').textContent = offline.length;
   }
@@ -736,6 +850,7 @@
   window.addEventListener('DOMContentLoaded', init);
 })();
 </script>
+
 
 <script>
 /* ============================================================
