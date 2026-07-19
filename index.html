@@ -635,7 +635,7 @@
   <div class="brand">
     <span class="brand-mark" aria-hidden="true"></span>
     <div class="brand-text">
-      <h1>FREAK<em>LAND</em> <span style="font-weight:400;color:var(--text-3);font-size:14px;">live v0.2</span></h1>
+      <h1>FREAK<em>LAND</em> <span style="font-weight:400;color:var(--text-3);font-size:14px;">live v0.1</span></h1>
       <p>Трансляции сервера</p>
     </div>
   </div>
@@ -1232,7 +1232,7 @@
     if(!CONFIG.apiBase) return;
     try{
       const base = CONFIG.apiBase.replace(/\/$/, '');
-      const res = await fetch(`${base}/online?vid=${encodeURIComponent(getVisitorId())}`);
+      const res = await fetch(`${base}/online?vid=${encodeURIComponent(getVisitorId())}&_=${Date.now()}`, { cache: 'no-store' });
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       const count = Number(data.count);
@@ -1386,11 +1386,14 @@
       </div>`;
   }
 
-  // Полная перерисовка параллельного просмотра — вызывается только
-  // когда меняется состав группы, режим или раскладка, чтобы не
-  // перезагружать чужие iframe'ы почём зря. Всегда рендерит только
-  // активный контейнер (сетка/свобода), второй очищается, чтобы не
-  // играли два экземпляра одного и того же стрима одновременно.
+  // Перерисовка параллельного просмотра — вызывается при любом
+  // изменении состава группы, режима или раскладки. Активный
+  // контейнер (сетка/свобода) больше не пересоздаётся целиком —
+  // см. syncMultiTiles ниже: она добавляет/убирает только реально
+  // изменившиеся тайлы, поэтому уже запущенные iframe'ы чужих
+  // стримов не трогаются и не перезагружаются. Неактивный контейнер
+  // по-прежнему полностью очищается, чтобы не играли два экземпляра
+  // одного и того же стрима одновременно при переключении раскладки.
   function renderMultiTheater(){
     const ids = [...groupChannels].filter(id => streamerState[id]);
     document.getElementById('multi-empty').hidden = ids.length !== 0;
@@ -1404,8 +1407,34 @@
     }
   }
 
-  function bindMultiTileRemove(container){
-    container.querySelectorAll('[data-remove]').forEach(btn => {
+  // Сверяет тайлы в контейнере со списком нужных id: убирает лишние
+  // (каналы, которых больше нет в группе) и добавляет отсутствующие,
+  // не пересоздавая при этом DOM-узлы (а значит и iframe) тех
+  // тайлов, что уже были на месте и никак не менялись. Возвращает
+  // массив только что добавленных тайлов — только для них и нужно
+  // навесить обработчики/позицию, у остальных всё это уже есть.
+  function syncMultiTiles(container, ids){
+    const idSet = new Set(ids);
+    container.querySelectorAll('.multi-tile[data-channel]').forEach(tile => {
+      if(!idSet.has(tile.dataset.channel)) tile.remove();
+    });
+
+    const existingIds = new Set(
+      [...container.querySelectorAll('.multi-tile[data-channel]')].map(t => t.dataset.channel)
+    );
+    const addedTiles = [];
+    ids.forEach(id => {
+      if(existingIds.has(id)) return;
+      container.insertAdjacentHTML('beforeend', multiTileHtml(id));
+      addedTiles.push(container.lastElementChild);
+    });
+    return addedTiles;
+  }
+
+  function bindMultiTileRemove(tiles){
+    tiles.forEach(tile => {
+      const btn = tile.querySelector('[data-remove]');
+      if(!btn) return;
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         groupChannels.delete(btn.dataset.remove);
@@ -1422,15 +1451,15 @@
   function renderStaticGrid(ids){
     const grid = document.getElementById('multi-grid');
     grid.style.setProperty('--cols', computeMultiCols(ids.length));
-    grid.innerHTML = ids.map(multiTileHtml).join('');
-    bindMultiTileRemove(grid);
+    const addedTiles = syncMultiTiles(grid, ids);
+    bindMultiTileRemove(addedTiles);
   }
 
   // Режим «свободно»: окна на полотне с произвольным положением и
   // шириной — двигаются за шапку, тянутся за правый нижний угол.
   function renderFreeCanvas(ids){
     const canvas = document.getElementById('multi-free');
-    canvas.innerHTML = ids.map(multiTileHtml).join('');
+    const addedTiles = syncMultiTiles(canvas, ids);
 
     // Окнам без сохранённого положения даём стартовую расстановку
     // квадратом внутри полотна — дальше их можно свободно двигать.
@@ -1453,7 +1482,11 @@
       saveTileFreeState();
     }
 
-    canvas.querySelectorAll('.multi-tile[data-channel]').forEach(tile => {
+    // Позицию и обработчики перетаскивания/ресайза нужно поставить
+    // только новым тайлам — у уже существующих они и так на месте,
+    // повторная простановка style тут не нужна, а повторный
+    // addEventListener/observe копил бы дублирующиеся обработчики.
+    addedTiles.forEach(tile => {
       const state = tileFreeState[tile.dataset.channel];
       if(state){
         tile.style.left = state.x + 'px';
@@ -1463,7 +1496,7 @@
       initFreeTile(tile);
     });
 
-    bindMultiTileRemove(canvas);
+    bindMultiTileRemove(addedTiles);
     updateFreeCanvasHeight();
   }
 
@@ -1495,16 +1528,16 @@
   }
 
   /* ============================================================
-     ИНФОРМАЦИЯ О САЙТЕs
+     ИНФОРМАЦИЯ О САЙТЕ
      ------------------------------------------------------------
      Впиши сюда свой текст вместо примера — просто отредактируй
      содержимое INFO_TEXT ниже. Пустая строка между строк = новый
      абзац, одиночный перенос строки = <br>. Текст автоматически
      экранируется, так что вставлять туда что угодно безопасно.
   ============================================================ */
-  const INFO_TEXT = `null
+  const INFO_TEXT = `ПРИМЕР ПРИМЕР ПРИМЕР
 
-null nyll null`;
+ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР ПРИМЕР.`;
 
   function renderInfoText(text){
     return String(text || '')
