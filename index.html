@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreakLand Live — трансляции сервера</title>
+<meta name="description" content="Все стримеры сервера FreakLand в одном месте: смотри эфиры и переключайся между каналами без лишних вкладок.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230e0e15'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%239146ff'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%239146ff' stroke-width='2' opacity='0.55'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-void:#0a0a10;
+    --bg-panel:#0e0e16;
+    --bg-card:#161620;
+    --bg-card-hover:#1c1c29;
+    --border:rgba(255,255,255,.07);
+    --border-strong:rgba(255,255,255,.15);
+    --accent:#9146ff;
+    --accent-strong:#c3a4ff;
+    --accent-soft:rgba(145,70,255,.14);
+    --live:#ff4757;
+    --live-soft:rgba(255,71,87,.16);
+    --text-1:#eef1f5;
+    --text-2:#909aa8;
+    --text-3:#5b6270;
+    --radius-lg:18px;
+    --radius-md:12px;
+    --radius-sm:7px;
+    --ease:cubic-bezier(.4,0,.2,1);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:0.001ms !important;animation-iteration-count:1 !important;transition-duration:0.001ms !important;}
+  }
+
+  body{
+    background:var(--bg-void);
+    color:var(--text-1);
+    font-family:'Manrope',sans-serif;
+    min-height:100vh;
+    position:relative;
+    line-height:1.4;
+  }
+
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0px, rgba(255,255,255,.014) 1px, transparent 1px, transparent 3px),
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(145,70,255,.08), transparent 60%);
+  }
+
+  #bg-signal{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+    mix-blend-mode:screen;
+    opacity:.9;
+  }
+
+  h1,h2,h3,.font-display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  a{color:inherit;}
+
+  :focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:3px;
+    border-radius:4px;
+  }
+
+  /* ===== HEADER ===== */
+  header{
+    position:sticky;
+    top:0;
+    z-index:200;
+    background:rgba(12,15,20,.82);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+    padding:16px 32px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    flex-wrap:wrap;
+  }
+
+  .brand{display:flex;align-items:center;gap:12px;}
+
+  .brand-mark{
+    width:38px;height:38px;border-radius:10px;
+    background:linear-gradient(155deg, var(--accent-soft), transparent 70%);
+    border:1px solid var(--border-strong);
+    display:flex;align-items:center;justify-content:center;
+    position:relative;flex-shrink:0;
+  }
+  .brand-mark::before{
+    content:"";
+    width:9px;height:9px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 0 4px var(--accent-soft);
+  }
+
+  .brand-text h1{font-size:19px;font-weight:700;letter-spacing:.2px;}
+  .brand-text h1 em{color:var(--accent);font-style:normal;}
+  .brand-text p{font-size:11.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:1.4px;margin-top:1px;}
+
+  .header-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+
+  .live-ticker{
+    display:flex;align-items:center;gap:7px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;color:var(--text-2);
+    padding:7px 12px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:var(--bg-card);
+  }
+  .live-ticker .pulse-dot{
+    width:7px;height:7px;border-radius:50%;background:var(--live);
+    animation:pulse 2s infinite;
+    flex-shrink:0;
+  }
+  .live-ticker b{color:var(--text-1);font-weight:600;}
+
+  .search-box{position:relative;}
+  .search-box input{
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    color:var(--text-1);
+    font-family:'Manrope',sans-serif;
+    font-size:13.5px;
+    padding:9px 14px 9px 34px;
+    border-radius:999px;
+    width:200px;
+    transition:border-color .2s var(--ease), width .2s var(--ease);
+  }
+  .search-box input::placeholder{color:var(--text-3);}
+  .search-box input:focus{border-color:var(--accent);width:230px;outline:none;}
+  .search-box svg{
+    position:absolute;left:12px;top:50%;transform:translateY(-50%);
+    width:14px;height:14px;color:var(--text-3);pointer-events:none;
+  }
+
+  /* ===== MAIN ===== */
+  main{
+    position:relative;z-index:1;
+    max-width:1560px;margin:0 auto;
+    padding:28px 32px 60px;
+    display:flex;flex-direction:column;gap:44px;
+  }
+
+  /* ---- Player control bar ---- */
+  .player-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;
+  }
+  .now-playing{display:flex;align-items:center;gap:12px;min-width:0;}
+  .status-badge{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;font-weight:600;letter-spacing:.6px;
+    padding:5px 10px;border-radius:6px;flex-shrink:0;
+  }
+  .status-badge.is-live{background:var(--live-soft);color:var(--live);}
+  .status-badge.is-live::before{content:"● ";}
+  .status-badge.is-offline{background:rgba(255,255,255,.06);color:var(--text-3);}
+
+  .now-playing h2{font-size:20px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .host-tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;font-weight:600;letter-spacing:.5px;
+    color:var(--accent);border:1px solid var(--accent-soft);
+    background:var(--accent-soft);
+    padding:3px 8px;border-radius:5px;flex-shrink:0;
+  }
+
+  .player-actions{display:flex;gap:10px;flex-shrink:0;}
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    color:var(--text-1);
+    padding:9px 15px;border-radius:9px;
+    font-size:13px;font-weight:600;
+    cursor:pointer;transition:background .18s var(--ease), border-color .18s var(--ease), transform .18s var(--ease);
+    white-space:nowrap;
+  }
+  .btn:hover{background:var(--bg-card-hover);border-color:var(--border-strong);}
+  .btn:active{transform:scale(.97);}
+  .btn svg{width:14px;height:14px;flex-shrink:0;}
+
+  /* ---- Theater ---- */
+  .theater{
+    display:flex;gap:18px;
+    height:64vh;min-height:420px;max-height:720px;
+  }
+
+  .player-frame{
+    flex-grow:1;min-width:0;
+    position:relative;
+    background:#000;
+    border-radius:var(--radius-lg);
+    overflow:hidden;
+    border:1px solid var(--border-strong);
+    box-shadow:0 20px 50px -20px rgba(0,0,0,.7);
+  }
+  .player-frame iframe{width:100%;height:100%;border:none;display:block;}
+
+  .corner{position:absolute;width:22px;height:22px;pointer-events:none;z-index:3;opacity:.85;}
+  .corner.tl{top:10px;left:10px;border-top:2px solid var(--accent);border-left:2px solid var(--accent);border-radius:4px 0 0 0;}
+  .corner.tr{top:10px;right:10px;border-top:2px solid var(--accent);border-right:2px solid var(--accent);border-radius:0 4px 0 0;}
+  .corner.bl{bottom:10px;left:10px;border-bottom:2px solid var(--accent);border-left:2px solid var(--accent);border-radius:0 0 0 4px;}
+  .corner.br{bottom:10px;right:10px;border-bottom:2px solid var(--accent);border-right:2px solid var(--accent);border-radius:0 0 4px 0;}
+
+  .hud-bar{
+    position:absolute;top:0;left:0;right:0;z-index:2;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px;
+    background:linear-gradient(to bottom, rgba(0,0,0,.65), transparent);
+    pointer-events:none;
+  }
+  .hud-left{display:flex;align-items:center;gap:9px;font-family:'JetBrains Mono',monospace;font-size:12px;}
+  .hud-dot{width:7px;height:7px;border-radius:50%;background:var(--text-3);flex-shrink:0;}
+  .hud-dot.on{background:var(--live);animation:pulse 2s infinite;}
+  .hud-ch{color:var(--accent-strong);font-weight:600;letter-spacing:.5px;}
+  .hud-name{color:#fff;opacity:.85;}
+  .hud-right{font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff;opacity:.85;display:flex;align-items:center;gap:5px;}
+
+  .mute-hint{
+    position:absolute;bottom:12px;left:12px;z-index:2;
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+    color:rgba(255,255,255,.75);
+    background:rgba(0,0,0,.5);
+    padding:5px 9px;border-radius:6px;
+    pointer-events:none;
+    max-width:78%;
+  }
+
+  .chat-wrapper{
+    width:340px;flex-shrink:0;
+    background:var(--bg-panel);
+    border-radius:var(--radius-lg);
+    overflow:hidden;
+    border:1px solid var(--border-strong);
+    transition:width .25s var(--ease), opacity .2s var(--ease), margin .25s var(--ease);
+  }
+  .chat-wrapper.hidden{width:0;opacity:0;border:none;margin-left:-18px;}
+  .chat-wrapper iframe{width:100%;height:100%;border:none;}
+
+  /* ---- Section headers ---- */
+  .section-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:18px;flex-wrap:wrap;gap:8px;
+  }
+  .section-head h3{font-size:17px;font-weight:600;display:flex;align-items:center;gap:9px;}
+  .section-head .count{
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-3);
+    background:var(--bg-card);border:1px solid var(--border);
+    padding:2px 9px;border-radius:999px;
+  }
+  .dot-live{color:var(--live);}
+  .dot-offline{color:var(--text-3);}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));
+    gap:16px;
+  }
+
+  .empty-note{
+    grid-column:1/-1;
+    color:var(--text-3);font-size:13.5px;
+    padding:20px;text-align:center;
+    border:1px dashed var(--border);border-radius:var(--radius-md);
+  }
+
+  /* ---- Cards ---- */
+  .card{
+    all:unset;
+    display:flex;flex-direction:column;
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    overflow:hidden;cursor:pointer;
+    transition:transform .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease);
+    position:relative;
+  }
+  .card:hover{transform:translateY(-3px);background:var(--bg-card-hover);border-color:var(--border-strong);}
+  .card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent), 0 12px 24px -12px rgba(145,70,255,.4);}
+
+  .card-ch{
+    position:absolute;top:9px;left:9px;z-index:2;
+    font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.5px;
+    color:var(--text-1);background:rgba(0,0,0,.55);
+    padding:3px 7px;border-radius:5px;
+    backdrop-filter:blur(3px);
+  }
+
+  .thumb{
+    width:100%;aspect-ratio:16/9;background:#0c0f14;
+    background-size:cover;background-position:center;
+    position:relative;flex-shrink:0;
+  }
+  .badges{position:absolute;top:9px;right:9px;display:flex;gap:6px;z-index:2;}
+  .badge-live{
+    background:var(--live);color:#fff;font-family:'JetBrains Mono',monospace;
+    font-size:10px;font-weight:700;letter-spacing:.4px;padding:3px 6px;border-radius:5px;
+  }
+  .badge-viewers{
+    display:flex;align-items:center;gap:4px;
+    background:rgba(0,0,0,.6);backdrop-filter:blur(3px);color:#fff;
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:500;
+    padding:3px 7px;border-radius:5px;
+  }
+  .signal-bars{display:flex;align-items:flex-end;gap:1.5px;height:9px;}
+  .signal-bars span{width:2.5px;background:currentColor;border-radius:1px;opacity:.3;}
+  .signal-bars span.on{opacity:1;}
+  .signal-bars span:nth-child(1){height:35%;}
+  .signal-bars span:nth-child(2){height:55%;}
+  .signal-bars span:nth-child(3){height:75%;}
+  .signal-bars span:nth-child(4){height:100%;}
+
+  .card-body{padding:11px 12px;display:flex;gap:10px;align-items:flex-start;}
+  .avatar{width:36px;height:36px;border-radius:50%;background:var(--bg-panel);flex-shrink:0;object-fit:cover;border:1px solid var(--border);}
+  .card.active .avatar{border-color:var(--accent);}
+  .text-info{overflow:hidden;flex-grow:1;}
+  .title{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
+  .name-row{display:flex;align-items:center;gap:6px;}
+  .name{font-size:12px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mini-host{
+    font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.4px;
+    color:var(--accent);border:1px solid var(--accent-soft);background:var(--accent-soft);
+    padding:1.5px 5px;border-radius:4px;flex-shrink:0;
+  }
+
+  /* Offline & empty variants */
+  .card.offline .thumb{filter:grayscale(85%) brightness(.6);}
+  .card.offline .title{color:var(--text-2);}
+
+  .card--empty{cursor:default;}
+  .card--empty:hover{transform:none;background:var(--bg-card);border-color:var(--border);}
+  .card--empty .thumb{
+    background:repeating-linear-gradient(135deg, rgba(255,255,255,.025) 0 10px, transparent 10px 20px);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .card--empty .card-ch{opacity:.5;}
+  .empty-plus{
+    width:34px;height:34px;border-radius:50%;
+    border:1.5px dashed var(--border-strong);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--text-3);font-size:16px;font-weight:300;
+  }
+  .card--empty .title{color:var(--text-3);font-weight:600;}
+  .card--empty .name{color:var(--text-3);}
+  .card--empty .avatar{display:none;}
+
+  footer{
+    position:relative;z-index:1;
+    max-width:1560px;margin:0 auto;padding:0 32px 40px;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+    color:var(--text-3);font-size:12px;
+  }
+  footer a{color:var(--text-2);text-decoration:underline;text-underline-offset:2px;}
+
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  /* ===== Responsive ===== */
+  @media (max-width: 980px){
+    .theater{flex-direction:column;height:auto;max-height:none;}
+    .player-frame{aspect-ratio:16/9;}
+    .chat-wrapper{width:100%;height:420px;}
+    .chat-wrapper.hidden{height:0;width:100%;margin-left:0;}
+  }
+  @media (max-width: 640px){
+    header{padding:14px 18px;}
+    main{padding:20px 18px 44px;}
+    .search-box input{width:150px;}
+    .search-box input:focus{width:170px;}
+    .brand-text p{display:none;}
+    .player-bar{align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<canvas id="bg-signal" aria-hidden="true"></canvas>
+
+<header>
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div class="brand-text">
+      <h1>FREAK<em>LAND</em> <span style="font-weight:400;color:var(--text-3);font-size:14px;">live</span></h1>
+      <p>Трансляции сервера</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-ticker">
+      <span class="pulse-dot" aria-hidden="true"></span>
+      <b id="live-count">0</b>&nbsp;в эфире&nbsp;·&nbsp;<span id="total-count">0</span>&nbsp;каналов
+    </div>
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="search" id="search-input" placeholder="Найти стримера…" aria-label="Поиск стримера">
+    </div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="player-bar">
+      <div class="now-playing">
+        <span class="status-badge" id="status-badge">LIVE</span>
+        <h2 id="current-name">Загрузка…</h2>
+        <span class="host-tag" id="host-tag" hidden>ХОСТ СЕРВЕРА</span>
+      </div>
+      <div class="player-actions">
+        <a class="btn" id="open-twitch-btn" href="#" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+          Открыть на Twitch
+        </a>
+        <button class="btn" id="chat-toggle-btn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Скрыть чат
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="theater">
+    <div class="player-frame">
+      <span class="corner tl" aria-hidden="true"></span>
+      <span class="corner tr" aria-hidden="true"></span>
+      <span class="corner bl" aria-hidden="true"></span>
+      <span class="corner br" aria-hidden="true"></span>
+      <div class="hud-bar" aria-hidden="true">
+        <div class="hud-left">
+          <span class="hud-dot" id="hud-dot"></span>
+          <span class="hud-ch" id="hud-ch">CH-01</span>
+          <span class="hud-name" id="hud-name">—</span>
+        </div>
+        <div class="hud-right" id="hud-viewers"></div>
+      </div>
+      <iframe id="twitch-video" title="Проигрыватель Twitch" allowfullscreen></iframe>
+      <div class="mute-hint">🔇 Звук выключен браузером — включи его в плеере</div>
+    </div>
+    <aside class="chat-wrapper" id="chat-container">
+      <iframe id="twitch-chat" title="Чат Twitch"></iframe>
+    </aside>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h3><span class="dot-live">●</span> Сейчас в эфире <span class="count" id="live-section-count">0</span></h3>
+    </div>
+    <div class="grid" id="live-grid"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h3><span class="dot-offline">○</span> Не в эфире <span class="count" id="offline-section-count">0</span></h3>
+    </div>
+    <div class="grid" id="offline-grid"></div>
+  </section>
+</main>
+
+<footer>
+  <span>Статусы каналов и число зрителей заданы вручную в коде — для автообновления нужна интеграция с Twitch API.</span>
+  <span>Фан-проект сообщества, не связан с Twitch Interactive, Inc.</span>
+</footer>
+
+<noscript>Для работы сайта нужен JavaScript.</noscript>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     НАСТРОЙКИ
+     ------------------------------------------------------------
+     parentDomains — сюда добавь домен(ы), на которых будет жить
+     сайт. Twitch требует точное совпадение parent с адресом
+     страницы, иначе плеер и чат откажутся грузиться.
+     Для локальной разработки оставь 'localhost'.
+     Пример для продакшена:
+       parentDomains: ['localhost', 'freakland-live.ru', 'www.freakland-live.ru']
+  ============================================================ */
+  const CONFIG = {
+    parentDomains: ['localhost'] // <-- ДОРАБОТАТЬ: добавь сюда свой домен перед публикацией
+  };
+
+  /* ============================================================
+     СПИСОК СТРИМЕРОВ
+     ------------------------------------------------------------
+     Чтобы добавить реального стримера вместо заглушки — замени
+     объект-заглушку (isPlaceholder:true) на реальные данные и
+     поставь isPlaceholder:false, isLive в актуальное состояние.
+     id — это ник канала на Twitch (из ссылки twitch.tv/ник).
+  ============================================================ */
+  const streamers = [
+    {
+      id:'cacto0o', name:'cacto0o', isLive:true, isPlaceholder:false,
+      title:'Гриндим ресы на FreakLand', viewers:245,
+      avatar:'https://ui-avatars.com/api/?name=cacto0o&background=1c1c29&color=9146ff&bold=true',
+      thumbnail:'https://static-cdn.jtvnw.net/previews-ttv/live_user_cacto0o-440x248.jpg'
+    },
+    {
+      id:'xepomc', name:'xepomc', isLive:true, isPlaceholder:false,
+      title:'СТРОИМ БАЗУ | FreakLand', viewers:120,
+      avatar:'https://ui-avatars.com/api/?name=xepomc&background=1c1c29&color=9146ff&bold=true',
+      thumbnail:'https://static-cdn.jtvnw.net/previews-ttv/live_user_xepomc-440x248.jpg'
+    },
+    {
+      id:'bricksral', name:'bricksral', isLive:true, isPlaceholder:false,
+      title:'ФРИК ЛЕНД ВПЕРЁД', viewers:85,
+      avatar:'https://ui-avatars.com/api/?name=bricksral&background=1c1c29&color=9146ff&bold=true',
+      thumbnail:'https://static-cdn.jtvnw.net/previews-ttv/live_user_bricksral-440x248.jpg'
+    },
+    {
+      id:'5opka', name:'Пятёрка', isLive:false, isPlaceholder:false, isHost:true,
+      title:'Стрим окончен — загляни попозже', viewers:0,
+      avatar:'https://ui-avatars.com/api/?name=5opka&background=1c1c29&color=9146ff&bold=true',
+      thumbnail:''
+    },
+
+    // ДОРАБОТАТЬ: свободные слоты под остальных стримеров сервера (~6 шт).
+    // Замени по одному по мере готовности реальных ников.
+    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' },
+    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' },
+    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' },
+    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' },
+    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' },
+    { id:null, name:'Свободный слот', isLive:false, isPlaceholder:true, title:'Скоро будет стример', viewers:0, avatar:'', thumbnail:'' }
+  ];
+
+  /* ============================================================
+     СОСТОЯНИЕ И УТИЛИТЫ
+  ============================================================ */
+  let currentChannel = null;
+  let isChatVisible = true;
+  let searchQuery = '';
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function parentParams(){
+    return CONFIG.parentDomains.map(d => 'parent=' + encodeURIComponent(d)).join('&');
+  }
+
+  function videoSrc(channel){
+    return `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&${parentParams()}&muted=true`;
+  }
+
+  function chatSrc(channel){
+    return `https://www.twitch.tv/embed/${encodeURIComponent(channel)}/chat?${parentParams()}&darkpopout`;
+  }
+
+  function formatViewers(n){
+    return n.toLocaleString('ru-RU');
+  }
+
+  function signalBarsHtml(viewers){
+    const level = viewers >= 400 ? 4 : viewers >= 150 ? 3 : viewers >= 50 ? 2 : 1;
+    let html = '<span class="signal-bars" aria-hidden="true">';
+    for(let i=1;i<=4;i++){
+      html += `<span class="${i<=level?'on':''}"></span>`;
+    }
+    html += '</span>';
+    return html;
+  }
+
+  function chNumber(index){
+    return 'CH-' + String(index+1).padStart(2,'0');
+  }
+
+  /* ============================================================
+     РЕНДЕР
+  ============================================================ */
+  function init(){
+    renderGrids();
+    const firstLive = streamers.find(s => s.isLive && !s.isPlaceholder);
+    const fallback = streamers.find(s => !s.isPlaceholder);
+    selectStream((firstLive || fallback).id);
+
+    document.getElementById('chat-toggle-btn').addEventListener('click', toggleChat);
+    document.getElementById('search-input').addEventListener('input', function(e){
+      searchQuery = e.target.value.trim().toLowerCase();
+      renderGrids();
+    });
+  }
+
+  function selectStream(channelId){
+    const streamer = streamers.find(s => s.id === channelId);
+    if(!streamer || streamer.isPlaceholder) return;
+
+    currentChannel = channelId;
+
+    document.getElementById('current-name').textContent = streamer.name;
+    document.getElementById('hud-name').textContent = streamer.name;
+
+    const badge = document.getElementById('status-badge');
+    badge.textContent = streamer.isLive ? 'LIVE' : 'OFFLINE';
+    badge.className = 'status-badge ' + (streamer.isLive ? 'is-live' : 'is-offline');
+
+    const hudDot = document.getElementById('hud-dot');
+    hudDot.classList.toggle('on', streamer.isLive);
+
+    const hudViewers = document.getElementById('hud-viewers');
+    hudViewers.textContent = streamer.isLive ? '👁 ' + formatViewers(streamer.viewers) : '';
+
+    const idx = streamers.findIndex(s => s.id === channelId);
+    document.getElementById('hud-ch').textContent = chNumber(idx);
+
+    const hostTag = document.getElementById('host-tag');
+    hostTag.hidden = !streamer.isHost;
+
+    document.getElementById('open-twitch-btn').href = `https://twitch.tv/${channelId}`;
+
+    document.getElementById('twitch-video').src = videoSrc(channelId);
+    document.getElementById('twitch-chat').src = chatSrc(channelId);
+
+    renderGrids();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function toggleChat(){
+    isChatVisible = !isChatVisible;
+    const chatContainer = document.getElementById('chat-container');
+    const btn = document.getElementById('chat-toggle-btn');
+    chatContainer.classList.toggle('hidden', !isChatVisible);
+    btn.lastChild.textContent = isChatVisible ? ' Скрыть чат' : ' Показать чат';
+  }
+
+  function matchesSearch(streamer){
+    if(!searchQuery) return true;
+    return streamer.name.toLowerCase().includes(searchQuery) ||
+           (streamer.title || '').toLowerCase().includes(searchQuery);
+  }
+
+  function cardHtml(streamer, index){
+    const isActive = streamer.id === currentChannel;
+    const ch = chNumber(index);
+
+    if(streamer.isPlaceholder){
+      return `
+        <div class="card card--empty">
+          <span class="card-ch">${ch}</span>
+          <div class="thumb"><span class="empty-plus" aria-hidden="true">+</span></div>
+          <div class="card-body">
+            <div class="text-info">
+              <div class="title">${escapeHtml(streamer.title)}</div>
+              <div class="name">${escapeHtml(streamer.name)}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    const badgesHtml = streamer.isLive ? `
+      <div class="badges">
+        <span class="badge-live">LIVE</span>
+        <span class="badge-viewers">${signalBarsHtml(streamer.viewers)}${formatViewers(streamer.viewers)}</span>
+      </div>` : '';
+
+    const thumbUrl = streamer.isLive && streamer.thumbnail
+      ? streamer.thumbnail
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(streamer.name)}&background=161620&color=2e2e3d&size=500`;
+
+    const hostBadge = streamer.isHost ? '<span class="mini-host">ХОСТ</span>' : '';
+
+    return `
+      <button type="button" class="card ${isActive?'active':''} ${streamer.isLive?'':'offline'}"
+        data-id="${escapeHtml(streamer.id)}"
+        aria-pressed="${isActive}"
+        aria-label="${escapeHtml(streamer.name)} — ${streamer.isLive?'в эфире':'офлайн'} — ${escapeHtml(streamer.title)}">
+        <span class="card-ch">${ch}</span>
+        <div class="thumb" style="background-image:url('${thumbUrl}')">${badgesHtml}</div>
+        <div class="card-body">
+          <img class="avatar" src="${streamer.avatar}" alt="" loading="lazy">
+          <div class="text-info">
+            <div class="title" title="${escapeHtml(streamer.title)}">${escapeHtml(streamer.title)}</div>
+            <div class="name-row">
+              <span class="name">${escapeHtml(streamer.name)}</span>
+              ${hostBadge}
+            </div>
+          </div>
+        </div>
+      </button>`;
+  }
+
+  function renderGrids(){
+    const liveGrid = document.getElementById('live-grid');
+    const offlineGrid = document.getElementById('offline-grid');
+
+    const filtered = streamers
+      .map((s, i) => ({ s, i }))
+      .filter(({s}) => s.isPlaceholder || matchesSearch(s));
+
+    const live = filtered.filter(({s}) => s.isLive && !s.isPlaceholder)
+      .sort((a,b) => b.s.viewers - a.s.viewers);
+    const offline = filtered.filter(({s}) => !s.isLive || s.isPlaceholder);
+
+    liveGrid.innerHTML = live.length
+      ? live.map(({s,i}) => cardHtml(s,i)).join('')
+      : `<div class="empty-note">Сейчас никто не стримит — загляни чуть позже.</div>`;
+
+    offlineGrid.innerHTML = offline.length
+      ? offline.map(({s,i}) => cardHtml(s,i)).join('')
+      : `<div class="empty-note">Ничего не найдено.</div>`;
+
+    document.querySelectorAll('.card[data-id]').forEach(card => {
+      card.addEventListener('click', () => selectStream(card.dataset.id));
+    });
+
+    const liveCountReal = streamers.filter(s => s.isLive && !s.isPlaceholder).length;
+    const totalReal = streamers.filter(s => !s.isPlaceholder).length;
+    document.getElementById('live-count').textContent = liveCountReal;
+    document.getElementById('total-count').textContent = totalReal;
+    document.getElementById('live-section-count').textContent = live.length;
+    document.getElementById('offline-section-count').textContent = offline.length;
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+
+<script>
+/* ============================================================
+   ФОНОВАЯ АНИМАЦИЯ — «СЕТЬ СИГНАЛОВ»
+   ------------------------------------------------------------
+   Точки медленно дрейфуют сами по себе и соединяются линиями,
+   когда оказываются рядом друг с другом. Курсор (или палец на
+   мобильном) ничего не притягивает — просто ближайшие точки
+   протягивают к нему тонкие линии, как будто он тоже стал
+   источником сигнала. Изредка отдельные точки на секунду
+   вспыхивают красным — перекликается с индикаторами LIVE у
+   карточек. Уважает prefers-reduced-motion: рисует один
+   статичный кадр вместо непрерывной анимации.
+============================================================ */
+(function(){
+  "use strict";
+
+  const canvas = document.getElementById('bg-signal');
+  if(!canvas || !canvas.getContext) return;
+  const ctx = canvas.getContext('2d');
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let width = 0, height = 0, dpr = 1;
+  let nodes = [];
+  let rafId = null;
+  const pointer = { x: 0, y: 0, active: false };
+
+  const LINK_DIST = 130;
+  const POINTER_LINK_DIST = 210;
+
+  function resize(){
+    width = window.innerWidth;
+    height = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    initNodes();
+  }
+
+  function initNodes(){
+    const density = (width * height) / 8500;
+    const count = Math.max(70, Math.min(160, Math.round(density)));
+    nodes = new Array(count).fill(0).map(() => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.15,
+      vy: (Math.random() - 0.5) * 0.15,
+      r: 1.0 + Math.random() * 1.4,
+      pulse: Math.random() < 0.05,
+      phase: Math.random() * Math.PI * 2
+    }));
+  }
+
+  function frame(time){
+    ctx.clearRect(0, 0, width, height);
+
+    if(!reducedMotion){
+      for(const n of nodes){
+        n.x += n.vx;
+        n.y += n.vy;
+        if(n.x < -20) n.x = width + 20;
+        if(n.x > width + 20) n.x = -20;
+        if(n.y < -20) n.y = height + 20;
+        if(n.y > height + 20) n.y = -20;
+      }
+    }
+
+    // связи между соседними точками
+    for(let i = 0; i < nodes.length; i++){
+      for(let j = i + 1; j < nodes.length; j++){
+        const a = nodes[i], b = nodes[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const dist = Math.hypot(dx, dy);
+        if(dist < LINK_DIST){
+          ctx.strokeStyle = `rgba(145,70,255,${(1 - dist / LINK_DIST) * 0.16})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // точки просто протягивают линию к курсору — без притяжения
+    if(pointer.active && !reducedMotion){
+      for(const n of nodes){
+        const dx = pointer.x - n.x, dy = pointer.y - n.y;
+        const dist = Math.hypot(dx, dy);
+        if(dist < POINTER_LINK_DIST){
+          ctx.strokeStyle = `rgba(195,164,255,${(1 - dist / POINTER_LINK_DIST) * 0.32})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(pointer.x, pointer.y);
+          ctx.lineTo(n.x, n.y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // сами точки
+    for(const n of nodes){
+      let fill = 'rgba(150,152,168,.5)';
+      let r = n.r;
+      if(n.pulse){
+        const t = time * 0.0011 + n.phase;
+        const glow = reducedMotion ? 0.6 : (Math.sin(t) + 1) / 2;
+        fill = `rgba(255,71,87,${0.3 + glow * 0.5})`;
+        r = n.r + glow * 1.1;
+      }
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+
+    if(!reducedMotion){
+      rafId = requestAnimationFrame(frame);
+    }
+  }
+
+  function setPointer(x, y){
+    pointer.x = x;
+    pointer.y = y;
+    pointer.active = true;
+  }
+
+  window.addEventListener('mousemove', e => setPointer(e.clientX, e.clientY), { passive: true });
+  window.addEventListener('mouseleave', () => { pointer.active = false; });
+  window.addEventListener('touchmove', e => {
+    if(e.touches && e.touches[0]) setPointer(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  window.addEventListener('touchend', () => { pointer.active = false; });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resize, 150);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if(reducedMotion) return;
+    if(document.hidden){
+      if(rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+    } else if(!rafId){
+      rafId = requestAnimationFrame(frame);
+    }
+  });
+
+  resize();
+  if(reducedMotion){
+    frame(0);
+  } else {
+    rafId = requestAnimationFrame(frame);
+  }
+})();
+</script>
+</body>
+</html>
