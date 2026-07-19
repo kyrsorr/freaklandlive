@@ -409,7 +409,7 @@
   <div class="brand">
     <span class="brand-mark" aria-hidden="true"></span>
     <div class="brand-text">
-      <h1>FREAK<em>LAND</em> <span style="font-weight:400;color:var(--text-3);font-size:14px;">live</span></h1>
+      <h1>FREAK<em>LAND</em> <span style="font-weight:400;color:var(--text-3);font-size:14px;">live v0.1</span></h1>
       <p>Трансляции сервера</p>
     </div>
   </div>
@@ -462,7 +462,6 @@
         <div class="hud-right" id="hud-viewers"></div>
       </div>
       <iframe id="twitch-video" title="Проигрыватель Twitch" allowfullscreen></iframe>
-      <div class="mute-hint">🔇 Звук выключен браузером — включи его в плеере</div>
     </div>
     <aside class="chat-wrapper" id="chat-container">
       <iframe id="twitch-chat" title="Чат Twitch"></iframe>
@@ -486,7 +485,7 @@
 
 <footer>
   <span>Сайт сделан вайб кодером, связь tg @egor_wires.</span>
-  <span>42</span>
+  <span>© 42</span>
 </footer>
 
 <noscript>Для работы сайта нужен JavaScript.</noscript>
@@ -795,7 +794,7 @@
     const thumbUrl = streamer.thumbnail || streamer.avatar || fallbackImg;
     const avatarUrl = streamer.avatar || fallbackImg;
 
-    const hostBadge = streamer.isHost ? '<span class="mini-host">OP</span>' : '';
+    const hostBadge = streamer.isHost ? '<span class="mini-host">Плесень</span>' : '';
 
     return `
       <button type="button" class="card ${isActive?'active':''} ${streamer.isLive?'':'offline'}"
